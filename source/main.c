@@ -14,27 +14,51 @@ enum Difficulty difficulty = MEDIUM;
 int board[9] = {0}; // 0=ריק, 1=X (שחקן), 2=O (מחשב)
 int delayTimer = 0;
 
-PrintConsole* topConsole;
-u16* videoMemory;
+u16* videoMemoryTop;
+u16* videoMemoryBottom;
 
-// מיני-גופן מורחב הכולל את האותיות הנדרשות לתפריטים ולמשחק
-const u8 customFont[128][8] = {
-    ['E'] = {0x7E,0x40,0x40,0x7C,0x40,0x40,0x7E,0x00},
-    ['A'] = {0x3C,0x42,0x42,0x7E,0x42,0x42,0x42,0x00},
-    ['S'] = {0x3C,0x40,0x40,0x3C,0x02,0x02,0x3C,0x00},
-    ['Y'] = {0x42,0x42,0x42,0x3C,0x18,0x18,0x18,0x00},
-    ['M'] = {0x42,0x66,0x5A,0x42,0x42,0x42,0x42,0x00},
-    ['D'] = {0x7C,0x42,0x42,0x42,0x42,0x42,0x7C,0x00},
-    ['H'] = {0x42,0x42,0x42,0x7E,0x42,0x42,0x42,0x00},
-    ['R'] = {0x7C,0x42,0x42,0x7C,0x48,0x44,0x42,0x00},
+// המיני-גופן שלנו: מכיל אותיות באנגלית, סימנים, ואת כל הא"ב העברי (החל מאינדקס 128)
+const u8 customFont[256][8] = {
     ['X'] = {0x42,0x24,0x18,0x18,0x24,0x42,0x42,0x00},
-    ['O'] = {0x3C,0x42,0x42,0x42,0x42,0x42,0x3C,0x00}
+    ['O'] = {0x3C,0x42,0x42,0x42,0x42,0x42,0x3C,0x00},
+    ['!'] = {0x10,0x10,0x10,0x10,0x00,0x00,0x10,0x00},
+    ['.'] = {0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x18},
+    [':'] = {0x00,0x18,0x18,0x00,0x00,0x18,0x18,0x00},
+    
+    // עברית - החל ממיקום 128 (א' עד ת')
+    [128] = {0x44,0x44,0x28,0x10,0x28,0x44,0x44,0x00}, // א
+    [129] = {0x7C,0x04,0x04,0x04,0x04,0x04,0x7C,0x00}, // ב
+    [130] = {0x1C,0x04,0x04,0x04,0x04,0x24,0x24,0x00}, // ג
+    [131] = {0x7C,0x04,0x04,0x04,0x04,0x04,0x04,0x00}, // ד
+    [132] = {0x7C,0x04,0x04,0x24,0x24,0x24,0x24,0x00}, // ה
+    [133] = {0x18,0x08,0x08,0x08,0x08,0x08,0x08,0x00}, // ו
+    [134] = {0x3C,0x04,0x08,0x10,0x10,0x10,0x10,0x00}, // ז
+    [135] = {0x7C,0x44,0x44,0x44,0x44,0x44,0x44,0x00}, // ח
+    [136] = {0x38,0x44,0x44,0x44,0x44,0x44,0x38,0x00}, // ט
+    [137] = {0x18,0x08,0x08,0x00,0x00,0x00,0x00,0x00}, // י
+    [138] = {0x7C,0x40,0x40,0x40,0x40,0x40,0x40,0x40}, // ך
+    [139] = {0x7C,0x40,0x40,0x40,0x40,0x40,0x7C,0x00}, // כ
+    [140] = {0x18,0x08,0x08,0x48,0x48,0x48,0x30,0x00}, // ל
+    [141] = {0x7C,0x44,0x44,0x44,0x44,0x44,0x7C,0x00}, // ם
+    [142] = {0x7C,0x54,0x54,0x54,0x54,0x54,0x54,0x00}, // מ
+    [143] = {0x1C,0x04,0x04,0x04,0x04,0x04,0x04,0x04}, // ן
+    [144] = {0x3C,0x04,0x04,0x04,0x04,0x04,0x7C,0x00}, // נ
+    [145] = {0x7C,0x44,0x44,0x44,0x44,0x44,0x7C,0x00}, // ס
+    [146] = {0x44,0x44,0x44,0x28,0x28,0x10,0x10,0x00}, // ע
+    [147] = {0x7C,0x44,0x44,0x7C,0x40,0x40,0x40,0x40}, // ף
+    [148] = {0x7C,0x44,0x44,0x7C,0x40,0x40,0x7C,0x00}, // פ
+    [149] = {0x44,0x44,0x44,0x28,0x28,0x28,0x18,0x18}, // ץ
+    [150] = {0x44,0x44,0x44,0x28,0x28,0x28,0x78,0x00}, // צ
+    [151] = {0x7C,0x44,0x44,0x7C,0x04,0x04,0x04,0x04}, // ק
+    [152] = {0x7C,0x04,0x04,0x04,0x04,0x04,0x04,0x00}, // ר
+    [153] = {0x44,0x54,0x54,0x54,0x54,0x54,0x7C,0x00}, // ש
+    [154] = {0x7C,0x44,0x44,0x44,0x44,0x44,0x64,0x00}  // ת
 };
 
-// --- מנוע גרפי בסיסי ---
-void drawCharScale(u16* vram, int x, int y, char c, u16 color, int scale) {
-    if (c < 0 || c > 127) return;
-    const u8* glyph = customFont[(int)c];
+// --- מנוע גרפי ---
+void drawCharScale(u16* vram, int x, int y, int c, u16 color, int scale) {
+    if (c < 0 || c > 255) return;
+    const u8* glyph = customFont[c];
     for (int ty = 0; ty < 8; ty++) {
         u8 row = glyph[ty];
         for (int tx = 0; tx < 8; tx++) {
@@ -53,11 +77,24 @@ void drawCharScale(u16* vram, int x, int y, char c, u16 color, int scale) {
     }
 }
 
-void drawString(u16* vram, int x, int y, const char* str, u16 color, int scale) {
-    while (*str) {
-        drawCharScale(vram, x, y, *str, color, scale);
-        x += 8 * scale;
-        str++;
+// מנוע טקסט חכם שמפענח עברית מודרנית (UTF-8) ומצייר מימין לשמאל!
+void drawHebrewRTL(u16* vram, int startX, int y, const char* str, u16 color, int scale) {
+    int cx = startX;
+    for (int i = 0; str[i] != '\0'; i++) {
+        unsigned char c = (unsigned char)str[i];
+        if (c == 0xD7) { // זיהוי אות בעברית
+            i++;
+            unsigned char hebCode = (unsigned char)str[i] - 0x90;
+            if (hebCode <= 26) {
+                drawCharScale(vram, cx, y, 128 + hebCode, color, scale);
+                cx -= 8 * scale;
+            }
+        } else if (c == ' ') {
+            cx -= 4 * scale;
+        } else {
+            drawCharScale(vram, cx, y, c, color, scale);
+            cx -= 8 * scale;
+        }
     }
 }
 
@@ -83,7 +120,7 @@ void fillScreen(u16* vram, u16 color) {
     for (int i = 0; i < 256 * 192; i++) vram[i] = color;
 }
 
-// --- לוגיקת AI למשחק ---
+// --- לוגיקת משחק ו-AI ---
 int checkWinArr(int b[9]) {
     int wins[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
     for(int i=0; i<8; i++) {
@@ -98,12 +135,11 @@ int isFull(int b[9]) {
     return 1;
 }
 
-// אלגוריתם Minimax לחישוב המהלך המושלם
 int minimax(int b[9], int depth, int isMax) {
     int score = checkWinArr(b);
-    if (score == 2) return 10 - depth; // ניצחון למחשב
-    if (score == 1) return -10 + depth; // הפסד למחשב
-    if (isFull(b)) return 0; // תיקו
+    if (score == 2) return 10 - depth; 
+    if (score == 1) return -10 + depth;
+    if (isFull(b)) return 0; 
 
     if (isMax) {
         int best = -1000;
@@ -131,21 +167,16 @@ int minimax(int b[9], int depth, int isMax) {
 }
 
 void doComputerMove() {
-    int freeCells[9];
-    int numFree = 0;
-    for(int i=0; i<9; i++) {
-        if(board[i] == 0) freeCells[numFree++] = i;
-    }
+    int freeCells[9], numFree = 0;
+    for(int i=0; i<9; i++) if(board[i] == 0) freeCells[numFree++] = i;
     if(numFree == 0) return;
 
-    // חישוב אקראיות בהתאם לרמת הקושי
     int doRandom = 0;
-    if (difficulty == EASY) doRandom = (rand() % 100 < 80); // 80% טעויות
-    else if (difficulty == MEDIUM) doRandom = (rand() % 100 < 35); // 35% טעויות
-    else doRandom = 0; // 0% טעויות (Hard)
+    if (difficulty == EASY) doRandom = (rand() % 100 < 80); 
+    else if (difficulty == MEDIUM) doRandom = (rand() % 100 < 35); 
+    else doRandom = 0; 
 
     int bestMove = -1;
-
     if (doRandom) {
         bestMove = freeCells[rand() % numFree];
     } else {
@@ -159,7 +190,7 @@ void doComputerMove() {
                     bestMove = i;
                     bestVal = moveVal;
                 } else if (moveVal == bestVal && (rand() % 2 == 0)) {
-                    bestMove = i; // גיוון כשיש מהלכים שווים בערכם
+                    bestMove = i; 
                 }
             }
         }
@@ -167,65 +198,71 @@ void doComputerMove() {
     if(bestMove != -1) board[bestMove] = 2;
 }
 
-// --- ממשק וגרפיקה ---
+// --- עדכון המסכים ---
 void updateTopScreen() {
-    consoleClear();
-    printf("\n\n   TIC-TAC-TOE : AI EDITION\n");
-    printf("   ========================\n\n\n");
+    fillScreen(videoMemoryTop, ARGB16(1, 2, 2, 3));
+    
+    u16 white = ARGB16(1, 31, 31, 31);
+    u16 green = ARGB16(1, 0, 31, 10);
+    u16 red   = ARGB16(1, 31, 5, 5);
+    u16 yellow= ARGB16(1, 31, 31, 0);
+    u16 blue  = ARGB16(1, 10, 20, 31);
+    
+    // כותרת בעברית מימין לשמאל
+    drawHebrewRTL(videoMemoryTop, 180, 25, "איקס עיגול", blue, 3);
     
     if (state == MENU) {
-        printf("     Select Difficulty\n");
-        printf("     on the touch screen!\n");
-    } else if (state == GAME_OVER) {
+        drawHebrewRTL(videoMemoryTop, 200, 90, "בחר רמת קושי", white, 2);
+        drawHebrewRTL(videoMemoryTop, 195, 120, "במסך התחתון", white, 2);
+    } 
+    else if (state == GAME_OVER) {
         int w = checkWinArr(board);
-        if(w == 1) printf("   \x1b[32mYOU WIN! AMAZING!\x1b[0m\n");
-        else if(w == 2) printf("   \x1b[31mCOMPUTER WINS!\x1b[0m\n");
-        else printf("   \x1b[33mIT'S A TIE!\x1b[0m\n");
-        printf("\n\n   Tap bottom screen to restart.");
-    } else {
-        printf("   Difficulty: ");
-        if(difficulty==EASY) printf("EASY\n");
-        if(difficulty==MEDIUM) printf("MEDIUM\n");
-        if(difficulty==HARD) printf("HARD\n");
-        printf("\n\n");
+        if(w == 1) drawHebrewRTL(videoMemoryTop, 150, 90, "ניצחת!", green, 3);
+        else if(w == 2) drawHebrewRTL(videoMemoryTop, 210, 90, "המחשב ניצח!", red, 3);
+        else drawHebrewRTL(videoMemoryTop, 140, 90, "תיקו!", yellow, 3);
         
-        if (state == PLAYER_TURN) printf("   \x1b[32mYOUR TURN (X)\x1b[0m\n");
-        else printf("   \x1b[31mCOMPUTER IS THINKING...\x1b[0m\n");
+        drawHebrewRTL(videoMemoryTop, 230, 160, "גע במסך כדי להתחיל שוב", white, 1);
+    } 
+    else {
+        if (difficulty == EASY) drawHebrewRTL(videoMemoryTop, 230, 70, "רמה: קל", white, 2);
+        if (difficulty == MEDIUM) drawHebrewRTL(videoMemoryTop, 230, 70, "רמה: בינוני", white, 2);
+        if (difficulty == HARD) drawHebrewRTL(videoMemoryTop, 230, 70, "רמה: קשה", white, 2);
+        
+        if (state == PLAYER_TURN) drawHebrewRTL(videoMemoryTop, 200, 120, "תורך", green, 3);
+        else drawHebrewRTL(videoMemoryTop, 220, 120, "המחשב חושב...", red, 2);
     }
 }
 
 void drawBottomScreen() {
     u16 bgCol = ARGB16(1, 2, 2, 3);
-    fillScreen(videoMemory, bgCol);
+    fillScreen(videoMemoryBottom, bgCol);
 
     if (state == MENU) {
         u16 btnCol = ARGB16(1, 6, 8, 12);
         u16 textCol = ARGB16(1, 31, 31, 31);
         
-        drawRoundRect(videoMemory, 50, 30, 156, 40, 10, btnCol);
-        drawString(videoMemory, 95, 42, "EASY", textCol, 2);
+        drawRoundRect(videoMemoryBottom, 50, 30, 156, 40, 10, btnCol);
+        drawHebrewRTL(videoMemoryBottom, 145, 42, "קל", textCol, 2);
         
-        drawRoundRect(videoMemory, 50, 80, 156, 40, 10, btnCol);
-        drawString(videoMemory, 95, 92, "MED", textCol, 2);
+        drawRoundRect(videoMemoryBottom, 50, 80, 156, 40, 10, btnCol);
+        drawHebrewRTL(videoMemoryBottom, 170, 92, "בינוני", textCol, 2);
         
-        drawRoundRect(videoMemory, 50, 130, 156, 40, 10, btnCol);
-        drawString(videoMemory, 95, 142, "HARD", textCol, 2);
+        drawRoundRect(videoMemoryBottom, 50, 130, 156, 40, 10, btnCol);
+        drawHebrewRTL(videoMemoryBottom, 155, 142, "קשה", textCol, 2);
     } 
     else {
-        // ציור לוח המשחק (רשת)
         u16 gridCol = ARGB16(1, 20, 20, 20);
         int ox = 53, oy = 21, cellSize = 50;
         
         for(int i=0; i<150; i++) {
             for(int w=0; w<3; w++) {
-                videoMemory[(oy+i)*256 + (ox+cellSize+w)] = gridCol;
-                videoMemory[(oy+i)*256 + (ox+cellSize*2+w)] = gridCol;
-                videoMemory[(oy+cellSize+w)*256 + (ox+i)] = gridCol;
-                videoMemory[(oy+cellSize*2+w)*256 + (ox+i)] = gridCol;
+                videoMemoryBottom[(oy+i)*256 + (ox+cellSize+w)] = gridCol;
+                videoMemoryBottom[(oy+i)*256 + (ox+cellSize*2+w)] = gridCol;
+                videoMemoryBottom[(oy+cellSize+w)*256 + (ox+i)] = gridCol;
+                videoMemoryBottom[(oy+cellSize*2+w)*256 + (ox+i)] = gridCol;
             }
         }
         
-        // ציור האיקסים והעיגולים
         u16 colorX = ARGB16(1, 0, 31, 10);
         u16 colorO = ARGB16(1, 31, 5, 5);
         for(int i=0; i<9; i++) {
@@ -234,8 +271,8 @@ void drawBottomScreen() {
                 int col = i % 3;
                 int px = ox + col*cellSize + 13;
                 int py = oy + row*cellSize + 13;
-                if(board[i] == 1) drawString(videoMemory, px, py, "X", colorX, 3);
-                else drawString(videoMemory, px, py, "O", colorO, 3);
+                if(board[i] == 1) drawHebrewRTL(videoMemoryBottom, px+18, py, "X", colorX, 3);
+                else drawHebrewRTL(videoMemoryBottom, px+18, py, "O", colorO, 3);
             }
         }
     }
@@ -249,16 +286,18 @@ void initGame() {
 }
 
 int main(void) {
-    srand(time(NULL)); // אתחול מנוע אקראיות
+    srand(time(NULL)); 
     
-    videoSetMode(MODE_0_2D);
+    // הגדרת שני המסכים למצב גרפי מתקדם!
+    videoSetMode(MODE_5_2D);
     vramSetBankA(VRAM_A_MAIN_BG);
-    topConsole = consoleInit(NULL, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, true, true);
+    int bgTop = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
+    videoMemoryTop = bgGetGfxPtr(bgTop);
 
     videoSetModeSub(MODE_5_2D);
     vramSetBankC(VRAM_C_SUB_BG);
-    int bg3 = bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
-    videoMemory = bgGetGfxPtr(bg3);
+    int bgBottom = bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
+    videoMemoryBottom = bgGetGfxPtr(bgBottom);
 
     updateTopScreen();
     drawBottomScreen();
@@ -267,10 +306,9 @@ int main(void) {
         scanKeys();
         int pressedKeys = keysDown();
 
-        // תור המחשב (עם השהיה קלה לתחושה טבעית)
         if (state == COMPUTER_TURN) {
             delayTimer++;
-            if (delayTimer > 40) { // ממתין כחצי שנייה
+            if (delayTimer > 40) { 
                 doComputerMove();
                 if (checkWinArr(board) || isFull(board)) state = GAME_OVER;
                 else state = PLAYER_TURN;
@@ -280,7 +318,6 @@ int main(void) {
             }
         }
         
-        // זיהוי לחיצות מגע
         if (pressedKeys & KEY_TOUCH) {
             touchPosition touch;
             touchRead(&touch);
@@ -312,7 +349,7 @@ int main(void) {
                 }
             }
             else if (state == GAME_OVER) {
-                state = MENU; // חזרה לתפריט בסיום
+                state = MENU; 
                 updateTopScreen();
                 drawBottomScreen();
             }
