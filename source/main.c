@@ -33,17 +33,23 @@ void updateDisplay() {
     printf("\x1b[37m%s\n\x1b[0m", currentOperand);
 }
 
-// מנוע גרפי: ציור תו מהגופן המובנה תוך הגדלתו (Scale)
+// מנוע גרפי: ציור תו מהגופן המובנה תוך הגדלתו (עם תיקון קריאת 16-ביט מ-VRAM)
 void drawCharScale(u16* vram, int x, int y, char c, u16 color, int scale) {
     if (c < 0 || c > 127) return;
-    const u8* fontData = (const u8*)topConsole->font.gfx;
+    const u16* fontData = (const u16*)topConsole->font.gfx;
     if (!fontData) return;
     
-    const u8* tile = fontData + (c * 32);
+    // כל תו בגופן תופס 16 מילים של 16-ביט (סה"כ 32 בייטים)
+    const u16* tile = fontData + (c * 16);
+    
     for (int ty = 0; ty < 8; ty++) {
         for (int tx = 0; tx < 8; tx++) {
             int byteIdx = ty * 4 + (tx / 2);
-            u8 b = tile[byteIdx];
+            
+            // התיקון: קריאת 16-ביט מזיכרון הווידאו וחילוץ הבייט המתאים
+            u16 word = tile[byteIdx / 2];
+            u8 b = (byteIdx % 2 == 0) ? (word & 0xFF) : (word >> 8);
+            
             u8 pixelIndex = (tx % 2 == 0) ? (b & 0x0F) : (b >> 4);
             
             if (pixelIndex > 0) {
@@ -60,6 +66,7 @@ void drawCharScale(u16* vram, int x, int y, char c, u16 color, int scale) {
         }
     }
 }
+
 
 // ציור מחרוזת שלמה
 void drawString(u16* vram, int x, int y, const char* str, u16 color, int scale) {
