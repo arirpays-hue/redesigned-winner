@@ -138,10 +138,11 @@ int main(void) {
 
     while(1) {
         scanKeys();
-        int keysDown = keysDown();
+                int pressedKeys = keysDown();
 
         // זיהוי לחיצת מגע
-        if (keysDown & KEY_TOUCH) {
+        if (pressedKeys & KEY_TOUCH) {
+            
             touchPosition touch;
             touchRead(&touch);
 
