@@ -1,0 +1,28 @@
+name: Build Nintendo DS ROM
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # שימוש בקונטיינר הרשמי של devkitPro
+    container: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Compile the code
+        run: make
+
+      - name: Upload NDS artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: compiled-ds-rom
+          # שומר את כל קובצי ה-NDS שנוצרו
+          path: '*.nds' 
+          
