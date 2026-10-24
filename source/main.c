@@ -4,7 +4,6 @@
 #include <string.h>
 #include <time.h>
 
-// מצבי משחק
 enum GameState { MENU, PLAYER_TURN, COMPUTER_TURN, GAME_OVER };
 enum Difficulty { EASY = 0, MEDIUM = 1, HARD = 2 };
 
@@ -17,48 +16,75 @@ int delayTimer = 0;
 u16* videoMemoryTop;
 u16* videoMemoryBottom;
 
-// הפונט העברי החדש! פיקסל-ארט קריא, נקי ומדויק מ-א' עד ת'
-const u8 customFont[256][8] = {
-    ['X'] = {0x42,0x24,0x18,0x18,0x24,0x42,0x42,0x00},
-    ['O'] = {0x3C,0x42,0x42,0x42,0x42,0x42,0x3C,0x00},
-    ['!'] = {0x10,0x10,0x10,0x10,0x00,0x00,0x10,0x00},
-    ['.'] = {0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x18},
-    [':'] = {0x00,0x18,0x18,0x00,0x00,0x18,0x18,0x00},
-    
-    // עברית - החל ממיקום 128
-    [128] = {0x18, 0x28, 0x48, 0x88, 0x08, 0x08, 0x08, 0x00}, // א
-    [129] = {0x78, 0x08, 0x08, 0x08, 0x08, 0x08, 0x7C, 0x00}, // ב
-    [130] = {0x18, 0x08, 0x08, 0x08, 0x08, 0x10, 0x30, 0x00}, // ג
-    [131] = {0x78, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x00}, // ד
-    [132] = {0x78, 0x08, 0x08, 0x48, 0x48, 0x48, 0x48, 0x00}, // ה
-    [133] = {0x18, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x00}, // ו
-    [134] = {0x30, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x00}, // ז
-    [135] = {0x78, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x00}, // ח
-    [136] = {0x38, 0x48, 0x48, 0x48, 0x48, 0x48, 0x3C, 0x00}, // ט
-    [137] = {0x18, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00}, // י
-    [138] = {0x78, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08}, // ך (עם ירידה לשורה הבאה)
-    [139] = {0x38, 0x48, 0x08, 0x08, 0x08, 0x48, 0x38, 0x00}, // כ
-    [140] = {0x08, 0x10, 0x20, 0x78, 0x48, 0x48, 0x38, 0x00}, // ל
-    [141] = {0x78, 0x48, 0x48, 0x48, 0x48, 0x48, 0x78, 0x00}, // ם
-    [142] = {0x78, 0x48, 0x48, 0x48, 0x48, 0x08, 0x38, 0x00}, // מ
-    [143] = {0x18, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08}, // ן
-    [144] = {0x18, 0x08, 0x08, 0x08, 0x08, 0x08, 0x38, 0x00}, // נ
-    [145] = {0x38, 0x48, 0x48, 0x48, 0x48, 0x48, 0x38, 0x00}, // ס
-    [146] = {0x48, 0x48, 0x48, 0x28, 0x28, 0x10, 0x10, 0x00}, // ע
-    [147] = {0x78, 0x48, 0x48, 0x78, 0x08, 0x08, 0x08, 0x08}, // ף
-    [148] = {0x78, 0x48, 0x48, 0x78, 0x08, 0x08, 0x78, 0x00}, // פ
-    [149] = {0x48, 0x48, 0x28, 0x18, 0x08, 0x08, 0x08, 0x08}, // ץ
-    [150] = {0x48, 0x48, 0x28, 0x18, 0x08, 0x08, 0x78, 0x00}, // צ
-    [151] = {0x78, 0x48, 0x48, 0x78, 0x40, 0x40, 0x40, 0x40}, // ק
-    [152] = {0x78, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x00}, // ר
-    [153] = {0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x78, 0x00}, // ש
-    [154] = {0x78, 0x48, 0x48, 0x48, 0x48, 0x48, 0x4C, 0x00}  // ת
+// קבועים לאותיות בעברית - מונע ב-100% בעיות קידוד וג'יבריש!
+enum HebChars {
+    H_SPC = 0,
+    H_ALEF = 1, H_BET = 2, H_GIMEL = 3, H_DALET = 4, H_HE = 5, H_VAV = 6, H_ZAYIN = 7,
+    H_CHET = 8, H_TET = 9, H_YOD = 10, H_CHAF_S = 11, H_CHAF = 12, H_LAMED = 13,
+    H_MEM_S = 14, H_MEM = 15, H_NUN_S = 16, H_NUN = 17, H_SAMECH = 18, H_AYIN = 19,
+    H_PE_S = 20, H_PE = 21, H_TSADI_S = 22, H_TSADI = 23, H_KOF = 24, H_RESH = 25,
+    H_SHIN = 26, H_TAV = 27,
+    H_COLON = 28, H_EXCL = 29, H_DOT = 30, H_X = 31, H_O = 32
 };
 
-// --- מנוע ציור טקסט ---
-void drawCharScale(u16* vram, int x, int y, int c, u16 color, int scale) {
-    if (c < 0 || c > 255) return;
-    const u8* glyph = customFont[c];
+// פונט 8x8 מעוצב מחדש בבינארי ברור (רוחב כל אות 6 פיקסלים למניעת התנגשויות)
+const u8 hebFont[35][8] = {
+    [H_SPC]     = {0,0,0,0,0,0,0,0},
+    [H_ALEF]    = {0b10001000, 0b10010000, 0b01010000, 0b00100000, 0b01010000, 0b01001000, 0b10001000, 0}, // א
+    [H_BET]     = {0b01111000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b11111100, 0}, // ב
+    [H_GIMEL]   = {0b01111000, 0b00001000, 0b00001000, 0b00011000, 0b00101000, 0b01001000, 0b10001000, 0}, // ג
+    [H_DALET]   = {0b11111100, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0}, // ד
+    [H_HE]      = {0b01111000, 0b00001000, 0b00001000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0}, // ה
+    [H_VAV]     = {0b00110000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0}, // ו
+    [H_ZAYIN]   = {0b01111000, 0b00010000, 0b00100000, 0b00100000, 0b00100000, 0b00100000, 0b00100000, 0}, // ז
+    [H_CHET]    = {0b01111000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0}, // ח
+    [H_TET]     = {0b01001000, 0b01011000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b00110000, 0}, // ט
+    [H_YOD]     = {0b00110000, 0b00010000, 0b00010000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0}, // י
+    [H_CHAF_S]  = {0b01111000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000}, // ך
+    [H_CHAF]    = {0b01110000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b01110000, 0}, // כ
+    [H_LAMED]   = {0b01000000, 0b01000000, 0b01111000, 0b00001000, 0b00001000, 0b00010000, 0b01100000, 0}, // ל
+    [H_MEM_S]   = {0b01111000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b01111000, 0}, // ם
+    [H_MEM]     = {0b01110000, 0b10001000, 0b10101000, 0b10101000, 0b00001000, 0b00001000, 0b01111000, 0}, // מ
+    [H_NUN_S]   = {0b00110000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0b00010000}, // ן
+    [H_NUN]     = {0b00110000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0b00010000, 0b01110000, 0}, // נ
+    [H_SAMECH]  = {0b01111000, 0b10000100, 0b10000100, 0b10000100, 0b10000100, 0b10000100, 0b01111000, 0}, // ס
+    [H_AYIN]    = {0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b00101000, 0b00011000, 0b01110000, 0}, // ע
+    [H_PE_S]    = {0b01111000, 0b01001000, 0b01101000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000}, // ף
+    [H_PE]      = {0b01111000, 0b01001000, 0b01101000, 0b00001000, 0b00001000, 0b01001000, 0b01111000, 0}, // פ
+    [H_TSADI_S] = {0b01001000, 0b01001000, 0b00101000, 0b00011000, 0b00010000, 0b00010000, 0b00010000, 0b00010000}, // ץ
+    [H_TSADI]   = {0b01001000, 0b01001000, 0b00101000, 0b00010000, 0b00010000, 0b00010000, 0b01111000, 0}, // צ
+    [H_KOF]     = {0b01111000, 0b00001000, 0b01001000, 0b01010000, 0b01000000, 0b01000000, 0b01000000, 0b01000000}, // ק
+    [H_RESH]    = {0b01111000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0b00001000, 0}, // ר
+    [H_SHIN]    = {0b10010100, 0b10010100, 0b10010100, 0b10110100, 0b10000100, 0b01001000, 0b00110000, 0}, // ש
+    [H_TAV]     = {0b01111000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b01001000, 0b11001000, 0}, // ת
+    [H_COLON]   = {0, 0b00110000, 0b00110000, 0, 0, 0b00110000, 0b00110000, 0}, // :
+    [H_EXCL]    = {0b00110000, 0b00110000, 0b00110000, 0b00110000, 0, 0, 0b00110000, 0}, // !
+    [H_DOT]     = {0, 0, 0, 0, 0, 0, 0b00110000, 0}, // .
+    [H_X]       = {0b10000010, 0b01000100, 0b00101000, 0b00010000, 0b00101000, 0b01000100, 0b10000010, 0}, // X
+    [H_O]       = {0b00111100, 0b01000010, 0b10000001, 0b10000001, 0b10000001, 0b01000010, 0b00111100, 0}  // O
+};
+
+// כל משפט במשחק מוגדר מראש - חסין מתקלות UTF-8
+const u8 STR_TITLE[]     = {H_ALEF, H_YOD, H_KOF, H_SAMECH, H_SPC, H_AYIN, H_YOD, H_GIMEL, H_VAV, H_LAMED, 0xFF};
+const u8 STR_CHOOSE[]    = {H_BET, H_CHET, H_RESH, H_SPC, H_RESH, H_MEM, H_TAV, H_SPC, H_KOF, H_VAV, H_SHIN, H_YOD, 0xFF};
+const u8 STR_BOTTOM[]    = {H_BET, H_MEM, H_SAMECH, H_CHAF_S, H_SPC, H_HE, H_TAV, H_CHET, H_TAV, H_VAV, H_NUN_S, 0xFF};
+const u8 STR_WIN[]       = {H_NUN, H_YOD, H_TSADI, H_CHET, H_TAV, H_EXCL, 0xFF};
+const u8 STR_LOSE[]      = {H_HE, H_MEM, H_CHET, H_SHIN, H_BET, H_SPC, H_NUN, H_YOD, H_TSADI, H_CHET, H_EXCL, 0xFF};
+const u8 STR_TIE[]       = {H_TAV, H_YOD, H_KOF, H_VAV, H_EXCL, 0xFF};
+const u8 STR_RESTART[]   = {H_GIMEL, H_AYIN, H_SPC, H_BET, H_MEM, H_SAMECH, H_CHAF_S, H_SPC, H_LAMED, H_MEM, H_SHIN, H_CHET, H_KOF, H_SPC, H_CHET, H_DALET, H_SHIN, 0xFF};
+const u8 STR_LVL_EASY[]  = {H_RESH, H_MEM, H_HE, H_COLON, H_SPC, H_KOF, H_LAMED, 0xFF};
+const u8 STR_LVL_MED[]   = {H_RESH, H_MEM, H_HE, H_COLON, H_SPC, H_BET, H_YOD, H_NUN, H_VAV, H_NUN, H_YOD, 0xFF};
+const u8 STR_LVL_HARD[]  = {H_RESH, H_MEM, H_HE, H_COLON, H_SPC, H_KOF, H_SHIN, H_HE, 0xFF};
+const u8 STR_YOUR_TURN[] = {H_TAV, H_VAV, H_RESH, H_CHAF_S, 0xFF};
+const u8 STR_THINKING[]  = {H_HE, H_MEM, H_CHET, H_SHIN, H_BET, H_SPC, H_CHET, H_VAV, H_SHIN, H_BET, H_DOT, H_DOT, H_DOT, 0xFF};
+const u8 STR_BTN_EASY[]  = {H_KOF, H_LAMED, 0xFF};
+const u8 STR_BTN_MED[]   = {H_BET, H_YOD, H_NUN, H_VAV, H_NUN, H_YOD, 0xFF};
+const u8 STR_BTN_HARD[]  = {H_KOF, H_SHIN, H_HE, 0xFF};
+
+// --- מנוע גרפי ---
+void drawGlyph(u16* vram, int x, int y, u8 id, u16 color, int scale) {
+    if (id >= 35) return;
+    const u8* glyph = hebFont[id];
     for (int ty = 0; ty < 8; ty++) {
         u8 row = glyph[ty];
         for (int tx = 0; tx < 8; tx++) {
@@ -77,23 +103,19 @@ void drawCharScale(u16* vram, int x, int y, int c, u16 color, int scale) {
     }
 }
 
-// זיהוי ותרגום העברית לכיוון הנכון (RTL) עם רווחים מתוקנים
-void drawHebrewRTL(u16* vram, int startX, int y, const char* str, u16 color, int scale) {
-    int cx = startX;
-    for (int i = 0; str[i] != '\0'; i++) {
-        unsigned char c = (unsigned char)str[i];
-        if (c == 0xD7) { 
-            i++;
-            unsigned char hebCode = (unsigned char)str[i] - 0x90;
-            if (hebCode <= 26) {
-                drawCharScale(vram, cx, y, 128 + hebCode, color, scale);
-                cx -= 6 * scale; 
-            }
-        } else if (c == ' ') {
-            cx -= 4 * scale;
-        } else {
-            drawCharScale(vram, cx, y, c, color, scale);
-            cx -= 6 * scale;
+// מצייר משפט בעברית מימין לשמאל וממרכז אותו אוטומטית סביב centerX
+void drawCenteredHeb(u16* vram, int centerX, int y, const u8* codes, u16 color, int scale) {
+    int totalWidth = 0;
+    for (int i = 0; codes[i] != 0xFF; i++) {
+        totalWidth += (codes[i] == H_SPC) ? (4 * scale) : (7 * scale);
+    }
+    
+    int curRight = centerX + (totalWidth / 2);
+    for (int i = 0; codes[i] != 0xFF; i++) {
+        int step = (codes[i] == H_SPC) ? (4 * scale) : (7 * scale);
+        curRight -= step;
+        if (codes[i] != H_SPC) {
+            drawGlyph(vram, curRight, y, codes[i], color, scale);
         }
     }
 }
@@ -120,7 +142,7 @@ void fillScreen(u16* vram, u16 color) {
     for (int i = 0; i < 256 * 192; i++) vram[i] = color;
 }
 
-// --- בינה מלאכותית למשחק (AI) ---
+// --- לוגיקת משחק ו-AI ---
 int checkWinArr(int b[9]) {
     int wins[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
     for(int i=0; i<8; i++) {
@@ -198,37 +220,37 @@ void doComputerMove() {
     if(bestMove != -1) board[bestMove] = 2;
 }
 
-// --- ציור הממשקים ---
+// --- עדכון מסכים ---
 void updateTopScreen() {
     fillScreen(videoMemoryTop, ARGB16(1, 2, 2, 3));
     
-    u16 white = ARGB16(1, 31, 31, 31);
-    u16 green = ARGB16(1, 0, 31, 10);
-    u16 red   = ARGB16(1, 31, 5, 5);
-    u16 yellow= ARGB16(1, 31, 31, 0);
-    u16 blue  = ARGB16(1, 10, 20, 31);
+    u16 white  = ARGB16(1, 31, 31, 31);
+    u16 green  = ARGB16(1, 0, 31, 10);
+    u16 red    = ARGB16(1, 31, 5, 5);
+    u16 yellow = ARGB16(1, 31, 31, 0);
+    u16 blue   = ARGB16(1, 10, 20, 31);
     
-    drawHebrewRTL(videoMemoryTop, 218, 25, "איקס עיגול", blue, 3);
+    drawCenteredHeb(videoMemoryTop, 128, 25, STR_TITLE, blue, 3);
     
     if (state == MENU) {
-        drawHebrewRTL(videoMemoryTop, 200, 90, "בחר רמת קושי", white, 2);
-        drawHebrewRTL(videoMemoryTop, 194, 120, "במסך התחתון", white, 2);
+        drawCenteredHeb(videoMemoryTop, 128, 90, STR_CHOOSE, white, 2);
+        drawCenteredHeb(videoMemoryTop, 128, 120, STR_BOTTOM, white, 2);
     } 
     else if (state == GAME_OVER) {
         int w = checkWinArr(board);
-        if(w == 1) drawHebrewRTL(videoMemoryTop, 182, 90, "ניצחת!", green, 3);
-        else if(w == 2) drawHebrewRTL(videoMemoryTop, 227, 90, "המחשב ניצח!", red, 3);
-        else drawHebrewRTL(videoMemoryTop, 173, 90, "תיקו!", yellow, 3);
+        if(w == 1) drawCenteredHeb(videoMemoryTop, 128, 85, STR_WIN, green, 3);
+        else if(w == 2) drawCenteredHeb(videoMemoryTop, 128, 85, STR_LOSE, red, 2);
+        else drawCenteredHeb(videoMemoryTop, 128, 85, STR_TIE, yellow, 3);
         
-        drawHebrewRTL(videoMemoryTop, 194, 160, "גע במסך כדי להתחיל שוב", white, 1);
+        drawCenteredHeb(videoMemoryTop, 128, 145, STR_RESTART, white, 1);
     } 
     else {
-        if (difficulty == EASY) drawHebrewRTL(videoMemoryTop, 170, 70, "רמה: קל", white, 2);
-        if (difficulty == MEDIUM) drawHebrewRTL(videoMemoryTop, 194, 70, "רמה: בינוני", white, 2);
-        if (difficulty == HARD) drawHebrewRTL(videoMemoryTop, 176, 70, "רמה: קשה", white, 2);
+        if (difficulty == EASY) drawCenteredHeb(videoMemoryTop, 128, 70, STR_LVL_EASY, white, 2);
+        if (difficulty == MEDIUM) drawCenteredHeb(videoMemoryTop, 128, 70, STR_LVL_MED, white, 2);
+        if (difficulty == HARD) drawCenteredHeb(videoMemoryTop, 128, 70, STR_LVL_HARD, white, 2);
         
-        if (state == PLAYER_TURN) drawHebrewRTL(videoMemoryTop, 164, 120, "תורך", green, 3);
-        else drawHebrewRTL(videoMemoryTop, 206, 120, "המחשב חושב...", red, 2);
+        if (state == PLAYER_TURN) drawCenteredHeb(videoMemoryTop, 128, 120, STR_YOUR_TURN, green, 3);
+        else drawCenteredHeb(videoMemoryTop, 128, 120, STR_THINKING, red, 2);
     }
 }
 
@@ -237,17 +259,17 @@ void drawBottomScreen() {
     fillScreen(videoMemoryBottom, bgCol);
 
     if (state == MENU) {
-        u16 btnCol = ARGB16(1, 6, 8, 12);
+        u16 btnCol  = ARGB16(1, 6, 8, 12);
         u16 textCol = ARGB16(1, 31, 31, 31);
         
         drawRoundRect(videoMemoryBottom, 50, 30, 156, 40, 10, btnCol);
-        drawHebrewRTL(videoMemoryBottom, 140, 42, "קל", textCol, 2);
+        drawCenteredHeb(videoMemoryBottom, 128, 42, STR_BTN_EASY, textCol, 2);
         
         drawRoundRect(videoMemoryBottom, 50, 80, 156, 40, 10, btnCol);
-        drawHebrewRTL(videoMemoryBottom, 164, 92, "בינוני", textCol, 2);
+        drawCenteredHeb(videoMemoryBottom, 128, 92, STR_BTN_MED, textCol, 2);
         
         drawRoundRect(videoMemoryBottom, 50, 130, 156, 40, 10, btnCol);
-        drawHebrewRTL(videoMemoryBottom, 146, 142, "קשה", textCol, 2);
+        drawCenteredHeb(videoMemoryBottom, 128, 142, STR_BTN_HARD, textCol, 2);
     } 
     else {
         u16 gridCol = ARGB16(1, 20, 20, 20);
@@ -268,10 +290,10 @@ void drawBottomScreen() {
             if(board[i] != 0) {
                 int row = i / 3;
                 int col = i % 3;
-                int px = ox + col*cellSize + 16;
+                int px = ox + col*cellSize + 13;
                 int py = oy + row*cellSize + 13;
-                if(board[i] == 1) drawHebrewRTL(videoMemoryBottom, px, py, "X", colorX, 3);
-                else drawHebrewRTL(videoMemoryBottom, px, py, "O", colorO, 3);
+                if(board[i] == 1) drawGlyph(videoMemoryBottom, px, py, H_X, colorX, 3);
+                else drawGlyph(videoMemoryBottom, px, py, H_O, colorO, 3);
             }
         }
     }
