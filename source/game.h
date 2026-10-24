@@ -3,14 +3,16 @@
 
 #include <nds.h>
 
-// מצבי משחק ורמות קושי
-enum GameState { MENU, PLAYER_TURN, COMPUTER_TURN, GAME_OVER };
-enum Difficulty { EASY = 0, MEDIUM = 1, HARD = 2 };
+// מצבי משחק ורמות קושי (כולל מצב FVF - חבר נגד חבר)
+enum GameState { MENU, PLAYER_TURN, PLAYER2_TURN, COMPUTER_TURN, GAME_OVER };
+enum Difficulty { EASY = 0, MEDIUM = 1, HARD = 2, FVF = 3 };
 
 extern enum GameState state;
 extern enum Difficulty difficulty;
 extern int board[9];
-extern int winLine[3]; // שומר את 3 המשבצות המנצחות לאפקט הלייזר התלת-ממדי
+extern int winLine[3];
+extern int winEffectType; // 0=לייזר וזיקוקים, 1=הקפצה ומזרקה, 2=פעימות ומערבולת, 3=דיסקו ומטאורים
+extern int effectTimer;
 
 // משתני זווית ומצלמה לתלת-ממד
 extern float camRotX;
@@ -18,7 +20,7 @@ extern float camRotY;
 extern float camZoom;
 extern int pieceAngle[9];
 
-// מערכת חלקיקים (Particles) לאפקטים במסך המגע
+// מערכת חלקיקים (Particles)
 typedef struct {
     float x, y;
     float vx, vy;
@@ -26,10 +28,10 @@ typedef struct {
     int life;
 } Particle;
 
-#define MAX_PARTICLES 80
+#define MAX_PARTICLES 100
 extern Particle particles[MAX_PARTICLES];
 
-// קבועים לאותיות בעברית - חסין מתקלות קידוד
+// קבועים לאותיות בעברית
 enum HebChars {
     H_SPC = 0,
     H_ALEF = 1, H_BET = 2, H_GIMEL = 3, H_DALET = 4, H_HE = 5, H_VAV = 6, H_ZAYIN = 7,
@@ -40,7 +42,7 @@ enum HebChars {
     H_COLON = 28, H_EXCL = 29, H_DOT = 30, H_X = 31, H_O = 32
 };
 
-// הצהרת פונקציות מכל הקבצים
+// הצהרת פונקציות
 int checkWinArr(int b[9]);
 void updateWinLine(void);
 int isFull(int b[9]);
@@ -51,6 +53,7 @@ void render3DScene(void);
 
 void drawBottomUI(u16* vram);
 void spawnParticles(int x, int y, u16 color);
+void updateVictoryEffects2D(void);
 void updateAndDrawParticles(u16* vram);
 
 #endif
