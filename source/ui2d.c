@@ -3,7 +3,6 @@
 
 Particle particles[MAX_PARTICLES];
 
-// הפונט העברי הבינארי (6 פיקסלים רוחב לכל אות)
 static const u8 hebFont[35][8] = {
     [H_SPC]     = {0,0,0,0,0,0,0,0},
     [H_ALEF]    = {0b10001000, 0b10010000, 0b01010000, 0b00100000, 0b01010000, 0b01001000, 0b10001000, 0},
@@ -41,16 +40,22 @@ static const u8 hebFont[35][8] = {
 };
 
 static const u8 STR_TITLE[]     = {H_ALEF, H_YOD, H_KOF, H_SAMECH, H_SPC, H_AYIN, H_YOD, H_GIMEL, H_VAV, H_LAMED, 0xFF};
-static const u8 STR_CHOOSE[]    = {H_BET, H_CHET, H_RESH, H_SPC, H_RESH, H_MEM, H_TAV, H_SPC, H_KOF, H_VAV, H_SHIN, H_YOD, 0xFF};
+static const u8 STR_CHOOSE[]    = {H_BET, H_CHET, H_RESH, H_SPC, H_MEM, H_TSADI, H_BET, H_SPC, H_MEM, H_SHIN, H_CHET, H_KOF, 0xFF};
 static const u8 STR_WIN[]       = {H_NUN, H_YOD, H_TSADI, H_CHET, H_TAV, H_EXCL, 0xFF};
 static const u8 STR_LOSE[]      = {H_HE, H_MEM, H_CHET, H_SHIN, H_BET, H_SPC, H_NUN, H_YOD, H_TSADI, H_CHET, H_EXCL, 0xFF};
+static const u8 STR_X_WINS[]    = {H_ALEF, H_YOD, H_KOF, H_SAMECH, H_SPC, H_NUN, H_YOD, H_TSADI, H_CHET, H_EXCL, 0xFF};
+static const u8 STR_O_WINS[]    = {H_AYIN, H_YOD, H_GIMEL, H_VAV, H_LAMED, H_SPC, H_NUN, H_YOD, H_TSADI, H_CHET, H_EXCL, 0xFF};
 static const u8 STR_TIE[]       = {H_TAV, H_YOD, H_KOF, H_VAV, H_EXCL, 0xFF};
 static const u8 STR_RESTART[]   = {H_GIMEL, H_AYIN, H_SPC, H_BET, H_MEM, H_SAMECH, H_CHAF_S, H_SPC, H_LAMED, H_MEM, H_SHIN, H_CHET, H_KOF, H_SPC, H_CHET, H_DALET, H_SHIN, 0xFF};
 static const u8 STR_YOUR_TURN[] = {H_TAV, H_VAV, H_RESH, H_CHAF_S, 0xFF};
+static const u8 STR_TURN_X[]    = {H_TAV, H_VAV, H_RESH, H_SPC, H_ALEF, H_YOD, H_KOF, H_SAMECH, 0xFF};
+static const u8 STR_TURN_O[]    = {H_TAV, H_VAV, H_RESH, H_SPC, H_AYIN, H_YOD, H_GIMEL, H_VAV, H_LAMED, 0xFF};
 static const u8 STR_THINKING[]  = {H_HE, H_MEM, H_CHET, H_SHIN, H_BET, H_SPC, H_CHET, H_VAV, H_SHIN, H_BET, H_DOT, H_DOT, H_DOT, 0xFF};
+
 static const u8 STR_BTN_EASY[]  = {H_KOF, H_LAMED, 0xFF};
 static const u8 STR_BTN_MED[]   = {H_BET, H_YOD, H_NUN, H_VAV, H_NUN, H_YOD, 0xFF};
 static const u8 STR_BTN_HARD[]  = {H_KOF, H_SHIN, H_HE, 0xFF};
+static const u8 STR_BTN_FVF[]   = {H_NUN, H_GIMEL, H_DALET, H_SPC, H_CHET, H_BET, H_RESH, 0xFF}; // "נגד חבר"
 
 static void drawGlyph(u16* vram, int x, int y, u8 id, u16 color, int scale) {
     if (id >= 35) return;
@@ -107,13 +112,63 @@ static void drawRoundRect(u16* vram, int x, int y, int w, int h, int r, u16 colo
 }
 
 void spawnParticles(int x, int y, u16 color) {
-    for (int i = 0; i < MAX_PARTICLES; i++) {
-        particles[i].x = (float)x;
-        particles[i].y = (float)y;
-        particles[i].vx = ((rand() % 100) - 50) / 14.0f;
-        particles[i].vy = ((rand() % 100) - 65) / 14.0f;
-        particles[i].color = color;
-        particles[i].life = 20 + (rand() % 20);
+    for (int i = 0; i < 35; i++) {
+        int idx = rand() % MAX_PARTICLES;
+        particles[idx].x = (float)x;
+        particles[idx].y = (float)y;
+        particles[idx].vx = ((rand() % 100) - 50) / 14.0f;
+        particles[idx].vy = ((rand() % 100) - 65) / 14.0f;
+        particles[idx].color = color;
+        particles[idx].life = 20 + (rand() % 20);
+    }
+}
+
+// 4 אפקטי ניצחון שונים של חלקיקים במסך התחתון!
+void updateVictoryEffects2D(void) {
+    if (state != GAME_OVER || winLine[0] == -1) return;
+
+    if (winEffectType == 0) {
+        // אפקט 0: זיקוקי דינור אקראיים בשמיים
+        if (effectTimer % 18 == 0) {
+            int rx = 30 + (rand() % 196);
+            int ry = 35 + (rand() % 120);
+            u16 col = ARGB16(1, 10 + (rand() % 22), 10 + (rand() % 22), 10 + (rand() % 22));
+            spawnParticles(rx, ry, col);
+        }
+    } else if (winEffectType == 1) {
+        // אפקט 1: מזרקת זהב שפורצת מתחתית המסך למעלה!
+        for (int i = 0; i < 3; i++) {
+            int idx = rand() % MAX_PARTICLES;
+            particles[idx].x = 128.0f + ((rand() % 24) - 12);
+            particles[idx].y = 188.0f;
+            particles[idx].vx = ((rand() % 80) - 40) / 16.0f;
+            particles[idx].vy = -4.5f - ((rand() % 30) / 15.0f);
+            particles[idx].color = (rand() % 2 == 0) ? ARGB16(1, 31, 28, 0) : ARGB16(1, 31, 18, 0);
+            particles[idx].life = 45;
+        }
+    } else if (winEffectType == 2) {
+        // אפקט 2: מערבולת גלקסיה ספירלית מהמרכז!
+        for (int i = 0; i < 2; i++) {
+            int idx = rand() % MAX_PARTICLES;
+            int angle = (effectTimer * 900 + i * 16384) & 32767;
+            particles[idx].x = 128.0f;
+            particles[idx].y = 112.0f;
+            particles[idx].vx = f32tofloat(cosLerp(angle)) * 3.2f;
+            particles[idx].vy = f32tofloat(sinLerp(angle)) * 3.2f;
+            particles[idx].color = ARGB16(1, (effectTimer * 3) & 31, 15, 31);
+            particles[idx].life = 35;
+        }
+    } else if (winEffectType == 3) {
+        // אפקט 3: גשם מטאורים צבעוני מהשמיים!
+        for (int i = 0; i < 3; i++) {
+            int idx = rand() % MAX_PARTICLES;
+            particles[idx].x = (float)(rand() % 256);
+            particles[idx].y = 2.0f;
+            particles[idx].vx = 0.8f;
+            particles[idx].vy = 2.5f + ((rand() % 20) / 10.0f);
+            particles[idx].color = ARGB16(1, rand() % 32, 25, 31);
+            particles[idx].life = 50;
+        }
     }
 }
 
@@ -122,7 +177,10 @@ void updateAndDrawParticles(u16* vram) {
         if (particles[i].life > 0) {
             particles[i].x += particles[i].vx;
             particles[i].y += particles[i].vy;
-            particles[i].vy += 0.18f; // כוח משיכה לחלקיקים
+            // במערבולת ובגשם מטאורים מבטלים כוח משיכה נוסף כדי לשמור על הצורה
+            if (state != GAME_OVER || (winEffectType != 2 && winEffectType != 3)) {
+                particles[i].vy += 0.16f;
+            }
             particles[i].life--;
 
             int px = (int)particles[i].x;
@@ -138,7 +196,6 @@ void updateAndDrawParticles(u16* vram) {
 }
 
 void drawBottomUI(u16* vram) {
-    // רקע מדורג (Gradient) יפהפה במסך התחתון
     for (int y = 0; y < 192; y++) {
         u16 rowCol = ARGB16(1, 1, 2 + (y / 32), 4 + (y / 16));
         for (int x = 0; x < 256; x++) {
@@ -153,33 +210,46 @@ void drawBottomUI(u16* vram) {
     u16 cyan   = ARGB16(1, 0, 26, 31);
 
     if (state == MENU) {
-        drawCenteredHeb(vram, 128, 12, STR_TITLE, cyan, 2);
-        drawCenteredHeb(vram, 128, 34, STR_CHOOSE, white, 1);
+        drawCenteredHeb(vram, 128, 8, STR_TITLE, cyan, 2);
+        drawCenteredHeb(vram, 128, 28, STR_CHOOSE, white, 1);
 
         u16 btnCol = ARGB16(1, 5, 9, 16);
-        drawRoundRect(vram, 55, 52, 146, 36, 9, btnCol);
-        drawCenteredHeb(vram, 128, 62, STR_BTN_EASY, green, 2);
+        u16 fvfCol = ARGB16(1, 8, 4, 18);
 
-        drawRoundRect(vram, 55, 98, 146, 36, 9, btnCol);
-        drawCenteredHeb(vram, 128, 108, STR_BTN_MED, yellow, 2);
+        // 4 כפתורים לבחירת מצב משחק (קל, בינוני, קשה, נגד חבר)
+        drawRoundRect(vram, 48, 42, 160, 30, 8, btnCol);
+        drawCenteredHeb(vram, 128, 49, STR_BTN_EASY, green, 2);
 
-        drawRoundRect(vram, 55, 144, 146, 36, 9, btnCol);
-        drawCenteredHeb(vram, 128, 154, STR_BTN_HARD, red, 2);
+        drawRoundRect(vram, 48, 78, 160, 30, 8, btnCol);
+        drawCenteredHeb(vram, 128, 85, STR_BTN_MED, yellow, 2);
+
+        drawRoundRect(vram, 48, 114, 160, 30, 8, btnCol);
+        drawCenteredHeb(vram, 128, 121, STR_BTN_HARD, red, 2);
+
+        drawRoundRect(vram, 48, 150, 160, 30, 8, fvfCol);
+        drawCenteredHeb(vram, 128, 157, STR_BTN_FVF, cyan, 2);
     } else {
-        // סרגל סטטוס עליון בעברית במסך המגע
         if (state == PLAYER_TURN) {
-            drawCenteredHeb(vram, 128, 14, STR_YOUR_TURN, green, 2);
+            if (difficulty == FVF) drawCenteredHeb(vram, 128, 14, STR_TURN_X, green, 2);
+            else drawCenteredHeb(vram, 128, 14, STR_YOUR_TURN, green, 2);
+        } else if (state == PLAYER2_TURN) {
+            drawCenteredHeb(vram, 128, 14, STR_TURN_O, red, 2);
         } else if (state == COMPUTER_TURN) {
             drawCenteredHeb(vram, 128, 14, STR_THINKING, red, 2);
         } else if (state == GAME_OVER) {
             int w = checkWinArr(board);
-            if (w == 1) drawCenteredHeb(vram, 128, 10, STR_WIN, green, 2);
-            else if (w == 2) drawCenteredHeb(vram, 128, 10, STR_LOSE, red, 2);
-            else drawCenteredHeb(vram, 128, 10, STR_TIE, yellow, 2);
+            if (w == 1) {
+                if (difficulty == FVF) drawCenteredHeb(vram, 128, 10, STR_X_WINS, green, 2);
+                else drawCenteredHeb(vram, 128, 10, STR_WIN, green, 2);
+            } else if (w == 2) {
+                if (difficulty == FVF) drawCenteredHeb(vram, 128, 10, STR_O_WINS, red, 2);
+                else drawCenteredHeb(vram, 128, 10, STR_LOSE, red, 2);
+            } else {
+                drawCenteredHeb(vram, 128, 10, STR_TIE, yellow, 2);
+            }
             drawCenteredHeb(vram, 128, 32, STR_RESTART, white, 1);
         }
 
-        // לוח מגע אינטראקטיבי (3x3)
         int ox = 68, oy = 52, cellSize = 40;
         u16 gridCol = ARGB16(1, 0, 20, 28);
 
@@ -204,6 +274,6 @@ void drawBottomUI(u16* vram) {
         }
     }
 
-    // ציור חלקיקים מתפוצצים מעל הממשק
+    updateVictoryEffects2D();
     updateAndDrawParticles(vram);
 }
